@@ -1,4 +1,4 @@
-package com.wbrandt.ussd_service
+package com.wbrandt.ussd_service  // <- tu paquete
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -17,27 +17,24 @@ class UssdServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private lateinit var channel: MethodChannel
     private lateinit var appContext: android.content.Context
 
-    override fun onAttachedToEngine(binding: FlutterPlugin.FlutterEngineBinding) {
+    // ❌ onAttachedToEngine(FlutterEngineBinding)
+    // ✅ onAttachedToEngine(FlutterPlugin.FlutterPluginBinding)
+    override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         appContext = binding.applicationContext
         channel = MethodChannel(binding.binaryMessenger, "com.wbrandt/ussd_service")
         channel.setMethodCallHandler(this)
     }
 
-    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterEngineBinding) {
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
-
             "defaultSubscriptionId" -> {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-                    result.success(-1); return
-                }
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) { result.success(-1); return }
                 if (ActivityCompat.checkSelfPermission(appContext, Manifest.permission.READ_PHONE_STATE)
-                    != PackageManager.PERMISSION_GRANTED) {
-                    result.success(-1); return
-                }
+                    != PackageManager.PERMISSION_GRANTED) { result.success(-1); return }
                 val voiceSubId = SubscriptionManager.getDefaultVoiceSubscriptionId()
                 result.success(voiceSubId)
             }
@@ -46,19 +43,14 @@ class UssdServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 val code = call.argument<String>("code")
                 val subId = call.argument<Int>("subscriptionId") ?: -1
 
-                if (code.isNullOrBlank()) {
-                    result.error("ARG", "code vacío", null); return
-                }
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-                    result.error("UNSUPPORTED", "API < 26", null); return
-                }
+                if (code.isNullOrBlank()) { result.error("ARG","code vacío",null); return }
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) { result.error("UNSUPPORTED","API < 26",null); return }
+
                 val permCall = ActivityCompat.checkSelfPermission(appContext, Manifest.permission.CALL_PHONE) ==
                         PackageManager.PERMISSION_GRANTED
                 val permState = ActivityCompat.checkSelfPermission(appContext, Manifest.permission.READ_PHONE_STATE) ==
                         PackageManager.PERMISSION_GRANTED
-                if (!permCall || !permState) {
-                    result.error("PERMISSION", "Faltan CALL_PHONE/READ_PHONE_STATE", null); return
-                }
+                if (!permCall || !permState) { result.error("PERMISSION","Faltan permisos",null); return }
 
                 val baseTm = appContext.getSystemService(TelephonyManager::class.java)
                 val tm = if (subId >= 0) baseTm.createForSubscriptionId(subId) else baseTm
@@ -70,17 +62,13 @@ class UssdServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                             telephonyManager: TelephonyManager,
                             request: String,
                             response: CharSequence
-                        ) {
-                            result.success(response.toString())
-                        }
+                        ) { result.success(response.toString()) }
 
                         override fun onReceiveUssdResponseFailed(
                             telephonyManager: TelephonyManager,
                             request: String,
                             failureCode: Int
-                        ) {
-                            result.error("USSD_FAILED", "code=$failureCode", null)
-                        }
+                        ) { result.error("USSD_FAILED","code=$failureCode",null) }
                     },
                     Handler(Looper.getMainLooper())
                 )
