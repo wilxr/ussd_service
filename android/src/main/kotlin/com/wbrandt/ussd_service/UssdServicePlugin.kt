@@ -1,4 +1,4 @@
-package com.wbrandt.ussd_service  // <- tu paquete
+package com.wbrandt.ussd_service  // <-- tu paquete
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -8,7 +8,7 @@ import android.os.Looper
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import androidx.core.app.ActivityCompat
-import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.FlutterPlugin  // <-- IMPORT CORRECTO
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 
@@ -17,14 +17,14 @@ class UssdServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private lateinit var channel: MethodChannel
     private lateinit var appContext: android.content.Context
 
-    // ❌ onAttachedToEngine(FlutterEngineBinding)
-    // ✅ onAttachedToEngine(FlutterPlugin.FlutterPluginBinding)
+    // ✅ Embedding v2
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         appContext = binding.applicationContext
         channel = MethodChannel(binding.binaryMessenger, "com.wbrandt/ussd_service")
         channel.setMethodCallHandler(this)
     }
 
+    // ✅ Embedding v2
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
     }
@@ -38,11 +38,9 @@ class UssdServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 val voiceSubId = SubscriptionManager.getDefaultVoiceSubscriptionId()
                 result.success(voiceSubId)
             }
-
             "makeRequest" -> {
                 val code = call.argument<String>("code")
                 val subId = call.argument<Int>("subscriptionId") ?: -1
-
                 if (code.isNullOrBlank()) { result.error("ARG","code vacío",null); return }
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) { result.error("UNSUPPORTED","API < 26",null); return }
 
@@ -73,7 +71,6 @@ class UssdServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     Handler(Looper.getMainLooper())
                 )
             }
-
             else -> result.notImplemented()
         }
     }
